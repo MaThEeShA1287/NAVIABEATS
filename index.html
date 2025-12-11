@@ -1,0 +1,916 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Navira-Beats — Audio Player</title>
+<link rel="icon" type="image/x-icon" href="nAVIRALOGO.jpg">
+<style>
+        body {
+           
+            cursor: url('https://cur.cursors-4u.net/cursors/cur-2/cur103.cur'), auto; 
+        }
+    </style>
+<style>
+  :root{
+    --bg:#0f1724;
+    --panel:#0b1220;
+    --muted:#9aa6b2;
+    --accent:#7c3aed;
+    --accent-2:#4f46e5;
+    --glass: rgba(255,255,255,0.02);
+    --radius:14px;
+    --text:#e6eef6;
+  }
+
+  /* LIGHT THEME */
+  :root[data-theme="light"]{
+    --bg: linear-gradient(180deg,#f7f8fb 0%, #eef2f8 100%);
+    --panel: #ffffff;
+    --muted: #4b5563;
+    --accent: #7c3aed;
+    --accent-2: #4f46e5;
+    --glass: rgba(2,6,23,0.03);
+    --text: #0b1220;
+  }
+
+  *{box-sizing:border-box}
+  html,body{height:100%; margin:0; font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial; background:var(--bg); color:var(--text); -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1060px; margin:3.5vh auto; padding:18px;}
+  .header{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px}
+  .brand{display:flex; gap:12px; align-items:center}
+  .logo{
+    width:56px; height:56px; border-radius:12px; display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2)); font-weight:700; color:white; font-size:14px;
+    box-shadow: 0 8px 30px rgba(2,6,23,0.4);
+  }
+  .title{font-size:18px; font-weight:700}
+  .subtitle{font-size:12px; color:var(--muted)}
+
+  .toolbar{display:flex; gap:12px; align-items:center}
+
+  /* toggle slider (full) */
+  .theme-toggle{
+    display:inline-flex; align-items:center; gap:10px; user-select:none;
+  }
+  .toggle{
+    width:56px; height:30px; border-radius:999px; position:relative; background:linear-gradient(90deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)); padding:4px; cursor:pointer;
+    display:flex; align-items:center;
+  }
+  .toggle .knob{ width:22px; height:22px; background:white; border-radius:50%; transform:translateX(0); transition: transform .22s cubic-bezier(.2,.9,.3,1); box-shadow:0 6px 18px rgba(2,6,23,0.3); }
+  :root[data-theme="light"] .toggle{ background:linear-gradient(90deg,#e2e8f0,#cbd5e1) }
+  :root[data-theme="light"] .toggle .knob{ background:var(--panel) }
+
+  .device-badge{ font-size:12px; color:var(--muted); padding:6px 10px; border-radius:999px; background:var(--glass) }
+
+  .player{
+    background: linear-gradient(135deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border-radius:var(--radius);
+    padding:16px;
+    display:grid;
+    grid-template-columns: 240px 1fr 320px;
+    gap:16px;
+    box-shadow: 0 6px 40px rgba(2,6,23,0.6);
+    border: 1px solid rgba(255,255,255,0.03);
+    min-height:300px;
+  }
+
+  /* Left: album art */
+  .album {
+    position:relative;
+    border-radius:12px;
+    overflow:hidden;
+    min-height:240px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.03));
+    padding:12px;
+    transition: transform .4s cubic-bezier(.2,.9,.3,1);
+    display:flex; align-items:center; justify-content:center;
+    flex-direction:column;
+  }
+  .album img{width:100%; height:100%; object-fit:cover; display:block; border-radius:10px}
+  .owner-badge{
+    position:absolute; left:12px; top:12px; font-size:12px; padding:6px 10px; background:linear-gradient(90deg,var(--accent),var(--accent-2)); border-radius:999px; color:white; box-shadow: 0 6px 18px rgba(124,58,237,0.18);
+  }
+
+  .album .small-meta{ margin-top:10px; text-align:center; color:var(--muted); font-size:13px }
+
+  /* Center: controls + info */
+  .center {
+    display:flex; flex-direction:column; gap:12px; padding:6px 0;
+  }
+  .track-info{
+    display:flex; flex-direction:column; gap:6px;
+  }
+  .title { font-size:20px; font-weight:700; letter-spacing:0.2px;}
+  .artist { color:var(--muted); font-size:13px;}
+  .meta {
+    display:flex; gap:12px; align-items:center; font-size:13px; color:var(--muted);
+  }
+  .controls{
+    display:flex; align-items:center; gap:10px; margin-top:6px;
+  }
+  .btn{
+    background:var(--glass); border: none; color:inherit; padding:10px; border-radius:10px; cursor:pointer;
+    transition: transform .12s ease, background .12s ease;
+    display:inline-flex; align-items:center; justify-content:center;
+  }
+  .btn:active{ transform: scale(.98) }
+  .btn-large{ padding:14px; border-radius:12px; font-size:16px; box-shadow: 0 8px 30px rgba(2,6,23,0.6); }
+  .btn-primary{ background: linear-gradient(90deg,var(--accent), var(--accent-2)); color:white; }
+
+  .icon { font-size:16px }
+
+  /* timeline */
+  .timeline {
+    margin-top:8px; display:flex; align-items:center; gap:8px;
+  }
+  .time { font-size:12px; color:var(--muted); width:54px; text-align:center; flex-shrink:0 }
+  .seek {
+    -webkit-appearance:none; appearance:none; height:8px; width:100%;
+    background: rgba(255,255,255,0.06); border-radius:999px; position:relative; outline:none;
+  }
+  .seek::-webkit-slider-thumb { -webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:white; box-shadow:0 4px 12px rgba(0,0,0,0.5); margin-top:-4px; cursor:pointer;}
+  .seek::-moz-range-thumb { width:16px; height:16px; border-radius:50%; background:white; border:none; cursor:pointer;}
+
+  /* Right: playlist */
+  .playlist {
+    background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01));
+    border-radius:12px; padding:12px; height:100%;
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .playlist h3{ margin:0; font-size:14px; color:var(--muted) }
+  .list { overflow:auto; padding-right:6px; display:flex; flex-direction:column; gap:8px; margin-top:6px }
+  .track {
+    display:flex; gap:10px; align-items:center; padding:8px; border-radius:10px; cursor:pointer;
+    transition: background .12s ease, transform .08s ease; background:transparent;
+  }
+  .track:hover{ background: rgba(255,255,255,0.02); transform: translateY(-2px) }
+  .track.active { background: linear-gradient(90deg, rgba(124,58,237,0.12), rgba(79,70,229,0.06)); box-shadow: inset 0 0 0 1px rgba(124,58,237,0.03) }
+  .track .thumb { width:52px; height:52px; border-radius:8px; overflow:hidden; flex-shrink:0; background:rgba(255,255,255,0.03); display:flex; align-items:center; justify-content:center;}
+  .track .thumb img{width:100%; height:100%; object-fit:cover}
+  .track .meta { font-size:13px; color:var(--muted); display:flex; flex-direction:column; gap:4px }
+  .track .meta .t{ color:inherit; font-weight:700; font-size:14px }
+  .track .meta .a{ font-size:12px; color:var(--muted) }
+
+  .controls-row { display:flex; gap:8px; align-items:center; justify-content:space-between }
+  .small { font-size:12px; color:var(--muted) }
+
+  /* bottom row: file chooser + extra */
+  .bottom-row { display:flex; gap:8px; align-items:center; justify-content:space-between; margin-top:8px}
+  .file-input { display:flex; gap:8px; align-items:center }
+  input[type="file"]{ display:none; }
+  .choose-label{display:inline-flex; align-items:center; gap:8px; padding:10px 12px; background:rgba(255,255,255,0.02); border-radius:10px; cursor:pointer; font-size:13px}
+
+  /* modal for album & info */
+  .info-panel{
+    position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+    background: linear-gradient(180deg, rgba(2,6,23,0.7), rgba(2,6,23,0.9));
+    z-index:60;
+  }
+  .info-card{
+    width:92%; max-width:720px; background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border-radius:12px; padding:20px;
+    box-shadow: 0 12px 40px rgba(2,6,23,0.6);
+    color:var(--text);
+  }
+  .close-x{ float:right; cursor:pointer; color:var(--muted) }
+
+  /* responsive */
+  @media (max-width:980px){
+    .player{ grid-template-columns: 1fr; }
+    .album{ min-height:200px; order:1 }
+    .center{ order:2 }
+    .playlist{ order:3; max-height:350px }
+  }
+
+  /* small devices */
+  @media (max-width:420px){
+    .player{ padding:12px; gap:12px }
+    .logo{ width:46px; height:46px; font-size:12px }
+    .title{ font-size:16px }
+    .btn-large{ padding:10px }
+    .track .thumb{ width:44px; height:44px }
+  }
+
+  /* scrollbar */
+  .list::-webkit-scrollbar{ width:8px }
+  .list::-webkit-scrollbar-thumb{ background: rgba(0,0,0,0.15); border-radius:999px }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div class="brand">
+        <div class="logo">NB</div>
+        <div>
+          <div class="title">Navira-Beats — Player</div>
+          <div class="subtitle">Owner: <strong>Navira-Beats</strong> · Advanced single-file audio player</div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="theme-toggle" title="Theme: auto-detect + manual">
+          <div style="font-size:12px; color:var(--muted)">Theme</div>
+
+          <div id="themeToggle" class="toggle" aria-hidden="true" role="switch" tabindex="0">
+            <div class="knob" id="themeKnob"></div>
+          </div>
+        </div>
+
+        <div id="deviceBadge" class="device-badge">Device: —</div>
+      </div>
+    </div>
+
+    <div class="player" id="player">
+      <!-- LEFT: Album Art -->
+      <div class="album" id="album">
+        <div class="owner-badge">Owner: Navira-Beats</div>
+        <img id="albumArt" src="" alt="Album art (placeholder)">
+        <div class="small-meta" id="albumMeta">Album: — · Year: —</div>
+      </div>
+
+      <!-- CENTER: Controls + Info -->
+      <div class="center">
+        <div class="track-info">
+          <div class="title" id="trackTitle">—</div>
+          <div class="artist" id="trackArtist">—</div>
+          <div class="meta">
+            <div class="small" id="trackAlbum">Album: —</div>
+            <div style="flex:1"></div>
+            <div class="small" id="trackYear">—</div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button class="btn" id="prevBtn" title="Previous (←)"><span class="icon">⏮️</span></button>
+          <button class="btn btn-large btn-primary" id="playBtn" title="Play / Pause (Space)"><span id="playIcon">▶️</span></button>
+          <button class="btn" id="nextBtn" title="Next (→)"><span class="icon">⏭️</span></button>
+
+          <div style="flex:1"></div>
+
+          <button class="btn" id="shuffleBtn" title="Shuffle">🔀</button>
+          <button class="btn" id="repeatBtn" title="Repeat: off">🔁</button>
+
+          <label style="display:flex; align-items:center; gap:8px;">
+            <input type="range" id="volume" min="0" max="1" step="0.01" value="0.85" style="width:120px">
+          </label>
+        </div>
+
+        <div class="timeline">
+          <div class="time" id="currentTime">0:00</div>
+          <input type="range" id="seek" class="seek" min="0" max="100" value="0" step="0.1">
+          <div class="time" id="duration">0:00</div>
+        </div>
+
+        <div class="bottom-row">
+          <div class="file-input">
+            <label class="choose-label" for="filePicker">Choose local file</label>
+            <input type="file" id="filePicker" accept="audio/*">
+            <label class="choose-label" id="addToPlaylistLabel" title="Add chosen file to playlist">Add to playlist</label>
+          </div>
+
+          <div style="display:flex; gap:8px; align-items:center">
+            <button class="btn" id="showInfo">Album & Info</button>
+            <button class="btn" id="clearPlaylist">Clear list</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT: Playlist -->
+      <div class="playlist">
+        <div class="controls-row">
+          <h3>Playlist</h3>
+          <div class="small">Click a track to play</div>
+        </div>
+
+        <div class="list" id="playlistList">
+          <!-- JS will populate -->
+        </div>
+
+        <div style="display:flex; gap:8px; align-items:center; justify-content:space-between; margin-top:6px">
+          <div class="small" id="playlistCount">0 tracks</div>
+          <div style="display:flex; gap:8px">
+            <button class="btn" id="savePlaylist">Save</button>
+            <button class="btn" id="loadPlaylist">Load</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Info modal -->
+  <div class="info-panel" id="infoPanel">
+    <div class="info-card" role="dialog" aria-modal="true">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px">
+        <div>
+          <h2 style="margin:0">Album & Track Info</h2>
+          <div style="color:var(--muted); font-size:13px">Edit track details below (local change only).</div>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center">
+          <div class="small" id="infoOwner">Owner: Navira-Beats</div>
+          <div class="close-x" id="closeInfo" title="Close">✖</div>
+        </div>
+      </div>
+
+      <hr style="margin:12px 0; border:none; border-top:1px solid rgba(255,255,255,0.03)">
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px">
+        <div>
+          <label class="small">Title</label>
+          <input id="infoTitle" style="width:100%; padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.03); background:transparent; color:var(--text)">
+        </div>
+        <div>
+          <label class="small">Artist</label>
+          <input id="infoArtist" style="width:100%; padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.03); background:transparent; color:var(--text)">
+        </div>
+
+        <div>
+          <label class="small">Album</label>
+          <input id="infoAlbum" style="width:100%; padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.03); background:transparent; color:var(--text)">
+        </div>
+        <div>
+          <label class="small">Year</label>
+          <input id="infoYear" style="width:100%; padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.03); background:transparent; color:var(--text)">
+        </div>
+
+        <div style="grid-column:1/-1">
+          <label class="small">Album Art URL (or leave blank for placeholder)</label>
+          <input id="infoArt" style="width:100%; padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.03); background:transparent; color:var(--text)">
+        </div>
+      </div>
+
+      <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px">
+        <button class="btn" id="resetInfo">Reset</button>
+        <button class="btn btn-primary" id="saveInfo">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- audio element (hidden) -->
+  <audio id="audio" preload="metadata"></audio>
+
+<script>
+/*
+  Navira-Beats — Single-file advanced audio player
+  - Auto-detect theme (OS) + manual slider toggle
+  - Auto-detect device type (mobile / desktop) and update badge
+  - Playlist editable in JS array below; you can add songs (local relative/absolute URLs)
+  - Choose local file to play and optionally add to playlist
+  - Album & info modal for editing metadata per-track (local only)
+  - Timeline, time display, play/pause, prev/next, shuffle, repeat, volume
+  - Save/Load playlist (to localStorage)
+*/
+
+/* ------------------------------
+   User: Edit playlist here
+   Each track object: {src, title, artist, album, year, art}
+   src can be a URL or a relative path. For local files chosen via file picker we create object URLs.
+   ------------------------------- */
+let playlist = [
+  {
+    src: "Ayeshmantha & Zany Inzane - Pawena Jaathi (පාවෙන ජාති) [Official Video].mp3",
+    title: "පාවනෙ ජාති",
+    artist: "Navira-Beats",
+    album: "Chillwaves",
+    year: "2024",
+    art: "OIP (4).webp"
+  },
+  {
+    src: "MONTAGEM RUGADA.mp3",
+    title: "MONTAGEMRUGADA",
+    artist: "Navira-Beats",
+    album: "Morning Loops",
+    year: "2023",
+    art: "OIP (5).webp"
+  },
+  {
+    src: "MONTAGEM XONADA.mp3",
+    title: "MONTAGEM XONADA",
+    artist: "Navira-Beats",
+    album: "Cosmic Tape",
+    year: "2022",
+    art: "OIP (6).webp"
+  },
+  {
+    src: "Costa x Duava - Gammane ගම්මානේ  (Official Music Video).mp3",
+    title: "ගම්මාන‌ේ",
+    artist: "Navira-Beats",
+    album: "Morning Loops",
+    year: "2023",
+    art: "OIP (8).webp"
+  },
+  {
+    src: "Periyamulla & Sadamali ( පෙරියමුල්ල & සදමාලී ) Bus Dj Remix _ 2023 New Rap Dj Nonstop _ Bus Nonstop.mp3",
+    title: "පෙරියමුල්ල‌",
+    artist: "Navira-Beats",
+    album: "Cosmic Tape",
+    year: "2022",
+    art: "wp6990025.jpg"
+  },
+   {
+    src: "Dagara Waliga ( දඟර වලිග ) DJ Remix Official Music Video __ #visualizer #sri_lanka __ @sawanbeats.mp3",
+    title: "දගර වලිග",
+    artist: "Navira-Beats",
+    album: "Chillwaves",
+    year: "2024",
+    art: "OIP (4).webp"
+  },
+  {
+    src: "J Balvin, Willy William - Mi Gente (MVDNES Remix) _ Fast and Furious [Chase Scene] - Copy.mp3",
+    title: "MI GENTE",
+    artist: "Navira-Beats",
+    album: "Morning Loops",
+    year: "2023",
+    art: "OIP (5).webp"
+  },
+  {
+    src: "LUNA BALA (Slowed).mp3",
+    title: "LUNA BALA",
+    artist: "Navira-Beats",
+    album: "Cosmic Tape",
+    year: "2022",
+    art: "OIP (6).webp"
+  },
+  {
+    src: "Mamai Bolawu Yaka (මමයි බොලව් යකා) - Psycho (Official Audio).mp3",
+    title: "මමයි බොලව් යකා.",
+    artist: "Navira-Beats",
+    album: "Morning Loops",
+    year: "2023",
+    art: "OIP (8).webp"
+  },
+  {
+    src: "Tokyo Drift - Teriyaki Boyz (PedroDJDaddy Remix) (Bass Boosted).mp3",
+    title: "TOKYO DRIFT",
+    artist: "Navira-Beats",
+    album: "Cosmic Tape",
+    year: "2022",
+    art: "wp6990025.jpg"
+  }
+];
+// End of user-editable playlist
+
+/* ---------- state ---------- */
+let state = {
+  index: 0,
+  shuffle: false,
+  repeat: 'off', // off / one / all
+};
+
+/* ---------- DOM ---------- */
+const audio = document.getElementById('audio');
+const playBtn = document.getElementById('playBtn');
+const playIcon = document.getElementById('playIcon');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const shuffleBtn = document.getElementById('shuffleBtn');
+const repeatBtn = document.getElementById('repeatBtn');
+const volume = document.getElementById('volume');
+const seek = document.getElementById('seek');
+const currentTimeEl = document.getElementById('currentTime');
+const durationEl = document.getElementById('duration');
+const playlistList = document.getElementById('playlistList');
+const playlistCount = document.getElementById('playlistCount');
+const albumArt = document.getElementById('albumArt');
+const trackTitle = document.getElementById('trackTitle');
+const trackArtist = document.getElementById('trackArtist');
+const trackAlbum = document.getElementById('trackAlbum');
+const trackYear = document.getElementById('trackYear');
+const albumMeta = document.getElementById('albumMeta');
+
+const filePicker = document.getElementById('filePicker');
+const addToPlaylistLabel = document.getElementById('addToPlaylistLabel');
+const showInfoBtn = document.getElementById('showInfo');
+const infoPanel = document.getElementById('infoPanel');
+const closeInfo = document.getElementById('closeInfo');
+const infoTitle = document.getElementById('infoTitle');
+const infoArtist = document.getElementById('infoArtist');
+const infoAlbum = document.getElementById('infoAlbum');
+const infoYear = document.getElementById('infoYear');
+const infoArt = document.getElementById('infoArt');
+const saveInfo = document.getElementById('saveInfo');
+const resetInfo = document.getElementById('resetInfo');
+const infoOwner = document.getElementById('infoOwner');
+
+const savePlaylistBtn = document.getElementById('savePlaylist');
+const loadPlaylistBtn = document.getElementById('loadPlaylist');
+const clearPlaylistBtn = document.getElementById('clearPlaylist');
+
+const themeToggle = document.getElementById('themeToggle');
+const themeKnob = document.getElementById('themeKnob');
+const deviceBadge = document.getElementById('deviceBadge');
+
+const albumDiv = document.getElementById('album');
+
+/* ---------- helpers ---------- */
+function formatTime(s){
+  if(!isFinite(s)) return '0:00';
+  s = Math.floor(s);
+  const m = Math.floor(s/60);
+  const sec = s%60;
+  return m + ':' + (sec<10?'0'+sec:sec);
+}
+
+function setDeviceBadge(){
+  // Auto-detect screen size and type
+  const ua = navigator.userAgent || '';
+  const width = window.innerWidth;
+  let device = 'Desktop';
+  if(/Mobi|Android|iPhone|iPad|Phone/i.test(ua) || width < 768) device = 'Mobile';
+  else if(width < 1024) device = 'Tablet';
+  deviceBadge.textContent = `Device: ${device}`;
+}
+
+/* ---------- theme (auto-detect + manual slider) ---------- */
+function applyTheme(theme){
+  // theme: 'dark' or 'light'
+  if(theme === 'light'){
+    document.documentElement.setAttribute('data-theme','light');
+    themeKnob.style.transform = 'translateX(26px)';
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+    themeKnob.style.transform = 'translateX(0px)';
+  }
+  localStorage.setItem('navira-theme', theme);
+}
+
+function detectOSTheme(){
+  try {
+    const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+    return prefersLight ? 'light' : 'dark';
+  } catch(e){
+    return 'dark';
+  }
+}
+
+// initialize theme
+(function initTheme(){
+  const stored = localStorage.getItem('navira-theme');
+  const initial = stored || detectOSTheme();
+  applyTheme(initial === 'light' ? 'light' : 'dark');
+})();
+
+themeToggle.addEventListener('click', ()=>{
+  const current = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+  const next = current === 'light' ? 'dark' : 'light';
+  applyTheme(next);
+});
+themeToggle.addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); themeToggle.click(); }
+});
+
+/* ---------- render playlist ---------- */
+function renderPlaylist(){
+  playlistList.innerHTML = '';
+  playlist.forEach((t, i)=>{
+    const tr = document.createElement('div');
+    tr.className = 'track' + (i === state.index ? ' active' : '');
+    tr.dataset.index = i;
+
+    const thumb = document.createElement('div');
+    thumb.className = 'thumb';
+    const img = document.createElement('img');
+    img.src = t.art || placeholderArt();
+    img.alt = t.title || 'art';
+    thumb.appendChild(img);
+
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    const tTitle = document.createElement('div'); tTitle.className = 't'; tTitle.textContent = t.title || 'Unknown';
+    const tArtist = document.createElement('div'); tArtist.className = 'a'; tArtist.textContent = t.artist || '—';
+    meta.appendChild(tTitle); meta.appendChild(tArtist);
+
+    tr.appendChild(thumb);
+    tr.appendChild(meta);
+
+    tr.addEventListener('click', ()=>{ playIndex(i); });
+
+    playlistList.appendChild(tr);
+  });
+  playlistCount.textContent = `${playlist.length} track${playlist.length === 1 ? '' : 's'}`;
+}
+
+function placeholderArt(){
+  // simple SVG data URI placeholder (keeps everything single-file)
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='600' height='600'><rect width='100%' height='100%' fill='%237c3aed'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='48' fill='white'>Navira-Beats</text></svg>`;
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+}
+
+/* ---------- player actions ---------- */
+function loadTrack(index, autoplay=false){
+  if(index < 0 || index >= playlist.length) return;
+
+  state.index = index;
+  const t = playlist[index];
+
+  // Mark active in UI
+  Array.from(playlistList.children).forEach((el)=> el.classList.remove('active'));
+  const activeEl = playlistList.querySelector(`[data-index="${index}"]`);
+  if(activeEl) activeEl.classList.add('active');
+
+  // load source
+  audio.src = t.src;
+  audio.load();
+
+  // display info
+  albumArt.src = t.art || placeholderArt();
+  trackTitle.textContent = t.title || 'Unknown';
+  trackArtist.textContent = t.artist || '—';
+  trackAlbum.textContent = `Album: ${t.album || '—'}`;
+  trackYear.textContent = t.year || '—';
+  albumMeta.textContent = `Album: ${t.album || '—'} · Year: ${t.year || '—'}`;
+
+  // update info modal fields if open
+  infoTitle.value = t.title || '';
+  infoArtist.value = t.artist || '';
+  infoAlbum.value = t.album || '';
+  infoYear.value = t.year || '';
+  infoArt.value = t.art || '';
+
+  if(autoplay) audio.play().catch(()=>{ /* play prevented */ });
+
+  updatePlayButton();
+}
+
+function playIndex(i){
+  if(i === state.index && !audio.paused){
+    // already playing that one; do nothing
+    return;
+  }
+  loadTrack(i, true);
+}
+
+function updatePlayButton(){
+  if(audio.paused){
+    playIcon.textContent = '▶️';
+    playBtn.classList.remove('btn-primary');
+  } else {
+    playIcon.textContent = '⏸️';
+    playBtn.classList.add('btn-primary');
+  }
+}
+
+/* controls */
+playBtn.addEventListener('click', ()=>{
+  if(!audio.src){
+    if(playlist.length>0) loadTrack(0, true);
+    else return;
+  }
+  if(audio.paused) audio.play().catch(()=>{/* suppressed */});
+  else audio.pause();
+  updatePlayButton();
+});
+
+prevBtn.addEventListener('click', ()=>{
+  if(state.shuffle){
+    playRandom();
+    return;
+  }
+  if(audio.currentTime > 3){
+    audio.currentTime = 0;
+    return;
+  }
+  let prev = state.index - 1;
+  if(prev < 0){
+    if(state.repeat === 'all') prev = playlist.length - 1;
+    else return;
+  }
+  loadTrack(prev, true);
+});
+
+nextBtn.addEventListener('click', ()=>{
+  if(state.shuffle){
+    playRandom();
+    return;
+  }
+  let next = state.index + 1;
+  if(next >= playlist.length){
+    if(state.repeat === 'all') next = 0;
+    else { audio.pause(); return; }
+  }
+  loadTrack(next, true);
+});
+
+shuffleBtn.addEventListener('click', ()=>{
+  state.shuffle = !state.shuffle;
+  shuffleBtn.style.opacity = state.shuffle ? 1 : 0.7;
+});
+
+repeatBtn.addEventListener('click', ()=>{
+  if(state.repeat === 'off') state.repeat = 'all';
+  else if(state.repeat === 'all') state.repeat = 'one';
+  else state.repeat = 'off';
+  repeatBtn.title = `Repeat: ${state.repeat}`;
+  repeatBtn.style.opacity = state.repeat === 'off' ? 0.7 : 1;
+});
+
+/* audio events */
+audio.addEventListener('timeupdate', ()=>{
+  const cur = audio.currentTime || 0;
+  const dur = audio.duration || 0;
+  currentTimeEl.textContent = formatTime(cur);
+  durationEl.textContent = isFinite(dur) ? formatTime(dur) : '0:00';
+  if(isFinite(dur) && dur > 0){
+    seek.max = dur;
+    seek.value = cur;
+  } else {
+    seek.max = 100;
+    seek.value = 0;
+  }
+});
+
+audio.addEventListener('loadedmetadata', ()=>{
+  durationEl.textContent = formatTime(audio.duration || 0);
+});
+
+seek.addEventListener('input', ()=> {
+  audio.currentTime = parseFloat(seek.value);
+});
+
+volume.addEventListener('input', ()=>{
+  audio.volume = parseFloat(volume.value);
+});
+
+audio.addEventListener('play', updatePlayButton);
+audio.addEventListener('pause', updatePlayButton);
+
+audio.addEventListener('ended', ()=>{
+  if(state.repeat === 'one'){
+    audio.currentTime = 0;
+    audio.play();
+    return;
+  }
+
+  if(state.shuffle){
+    playRandom();
+    return;
+  }
+
+  let next = state.index + 1;
+  if(next >= playlist.length){
+    if(state.repeat === 'all') next = 0;
+    else { audio.pause(); updatePlayButton(); return; }
+  }
+  loadTrack(next, true);
+});
+
+/* play random */
+function playRandom(){
+  if(playlist.length === 0) return;
+  let next = Math.floor(Math.random() * playlist.length);
+  // avoid same index if possible
+  if(next === state.index && playlist.length > 1) next = (next + 1) % playlist.length;
+  loadTrack(next, true);
+}
+
+/* ---------- file picker (local files) ---------- */
+let lastPickedFile = null;
+filePicker.addEventListener('change', (e)=>{
+  const f = e.target.files && e.target.files[0];
+  if(!f) return;
+  lastPickedFile = f;
+  const objUrl = URL.createObjectURL(f);
+  // temporary track metadata - we set src to object URL when playing
+  const temp = {
+    src: objUrl,
+    title: f.name.replace(/\.[^/.]+$/, ""),
+    artist: 'Local file',
+    album: 'Local',
+    year: new Date().getFullYear().toString(),
+    art: ''
+  };
+  // play directly (without adding) by loading a temp track
+  const tempIndex = playlist.length;
+  playlist.push(temp);
+  renderPlaylist();
+  loadTrack(tempIndex, true);
+
+  // Note: the temp object URL will remain until page closed or URL.revokeObjectURL is called.
+});
+
+/* add to playlist label: click to add selected file permanently (keeps object URL) */
+addToPlaylistLabel.addEventListener('click', ()=>{
+  if(!lastPickedFile){
+    alert('Choose a local file first.');
+    return;
+  }
+  // Already added in change handler above; so simply notify user
+  alert('File added to playlist. You can save the playlist if you want to persist it.');
+});
+
+/* ---------- info panel (edit metadata) ---------- */
+showInfoBtn.addEventListener('click', ()=>{
+  infoPanel.style.display = 'flex';
+});
+
+closeInfo.addEventListener('click', ()=> infoPanel.style.display = 'none');
+infoPanel.addEventListener('click', (e)=> { if(e.target === infoPanel) infoPanel.style.display = 'none'; });
+
+saveInfo.addEventListener('click', ()=>{
+  if(!playlist[state.index]) return;
+  playlist[state.index].title = infoTitle.value || playlist[state.index].title;
+  playlist[state.index].artist = infoArtist.value || playlist[state.index].artist;
+  playlist[state.index].album = infoAlbum.value || playlist[state.index].album;
+  playlist[state.index].year = infoYear.value || playlist[state.index].year;
+  playlist[state.index].art = infoArt.value || playlist[state.index].art;
+  renderPlaylist();
+  loadTrack(state.index, false); // reload UI
+  infoPanel.style.display = 'none';
+});
+
+resetInfo.addEventListener('click', ()=>{
+  if(!playlist[state.index]) return;
+  infoTitle.value = playlist[state.index].title || '';
+  infoArtist.value = playlist[state.index].artist || '';
+  infoAlbum.value = playlist[state.index].album || '';
+  infoYear.value = playlist[state.index].year || '';
+  infoArt.value = playlist[state.index].art || '';
+});
+
+/* ---------- save/load playlist ---------- */
+savePlaylistBtn.addEventListener('click', ()=>{
+  try {
+    const data = JSON.stringify(playlist);
+    localStorage.setItem('navira-playlist', data);
+    alert('Playlist saved to localStorage.');
+  } catch(e){ alert('Save failed: ' + e.message); }
+});
+
+loadPlaylistBtn.addEventListener('click', ()=>{
+  try {
+    const raw = localStorage.getItem('navira-playlist');
+    if(!raw){ alert('No saved playlist found.'); return; }
+    const parsed = JSON.parse(raw);
+    if(Array.isArray(parsed)){
+      playlist = parsed;
+      renderPlaylist();
+      loadTrack(0,false);
+    } else alert('Saved playlist is invalid.');
+  } catch(e){ alert('Load failed: ' + e.message); }
+});
+
+clearPlaylistBtn.addEventListener('click', ()=>{
+  if(!confirm('Clear playlist? This will remove all tracks.')) return;
+  playlist = [];
+  audio.pause();
+  audio.removeAttribute('src');
+  renderPlaylist();
+  trackTitle.textContent = '—';
+  trackArtist.textContent = '—';
+  albumArt.src = placeholderArt();
+  playlistCount.textContent = '0 tracks';
+});
+
+/* ---------- keyboard shortcuts ---------- */
+document.addEventListener('keydown', (e)=>{
+  if(e.target && /input|textarea/i.test(e.target.tagName)) return;
+  if(e.code === 'Space'){ e.preventDefault(); playBtn.click(); }
+  else if(e.code === 'ArrowRight'){ nextBtn.click(); }
+  else if(e.code === 'ArrowLeft'){ prevBtn.click(); }
+});
+
+/* ---------- save UI and initial render ---------- */
+function init(){
+  setDeviceBadge();
+  window.addEventListener('resize', setDeviceBadge);
+
+  renderPlaylist();
+  if(playlist.length>0) {
+    loadTrack(0,false);
+  } else {
+    albumArt.src = placeholderArt();
+  }
+
+  // volume from stored
+  const vol = localStorage.getItem('navira-volume');
+  if(vol !== null){ volume.value = parseFloat(vol); audio.volume = parseFloat(vol); }
+  volume.addEventListener('change', ()=> localStorage.setItem('navira-volume', volume.value));
+
+  // theme: also listen to OS changes for auto behavior if user hasn't set a preference
+  window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e)=>{
+    const stored = localStorage.getItem('navira-theme');
+    if(stored) return; // user has chosen a preference, don't override
+    applyTheme(e.matches ? 'light' : 'dark');
+  });
+
+  // set placeholder art if missing
+  if(!albumArt.src) albumArt.src = placeholderArt();
+
+  // info owner
+  infoOwner.textContent = 'Owner: Navira-Beats';
+}
+
+/* ---------- initial call ---------- */
+init();
+
+/* Expose some functions for dev console if needed */
+window.NaviraPlayer = {
+  playlist,
+  loadTrack,
+  playIndex,
+  playRandom,
+  addTrack: (t)=>{ playlist.push(t); renderPlaylist(); }
+};
+</script>
+</body>
+</html>
